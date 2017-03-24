@@ -1,0 +1,10 @@
+#cloud-config
+packages:
+  - cowsay
+
+
+write_files:
+  - path: /hello.txt
+    content: |
+      {{content}}
+      {{otherthing}}
