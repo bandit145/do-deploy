@@ -9,7 +9,7 @@ class Droplet(Data):
 		super().__init__()
 		self.name = name
 		self.data = {'name':name}
-
+	#interfaces for adding things for creating droplets
 	def set_size(self, slug):
 		self.data['size'] = slug
 
@@ -38,6 +38,7 @@ class Droplet(Data):
 	def set_volumes(self, volumes):
 		self.data['volumes'] = volumes
 
+	#tags array
 	def set_tags(self, tags):
 		self.data['tags'] = tags
 
@@ -55,14 +56,56 @@ class Droplet(Data):
 				print(request.text)
 				sys.exit()
 		except KeyError:
-			print('Unexpected Response... Dumping response')
+			print('Unexpected response... Dumping response')
 			print(request.text)
 			sys.exit()
 
-	def remove_droplet(self, name):
+	def remove_droplet_by_tag(self, tag):
+		droplets = get_droplets()
+		request = requests.delete(url+'?tag_name={tag}'.format(tag=tag))
+		if request.response_code == 204:
+			print('Droplets of tag: {tag} '.format(tag=tag))
+			print('Droplets deleted:')
+			for droplet in droplets:
+				print('Name: '+droplet['name']+' ID: '+ droplet['id'])
+		else:
+			print('Deletion not completed...')
+			print('Dumping response code...')
+			print('Response code: {code}'.format(code=requests.status_code))
+			sys.exit()
 
+
+	def remove_droplet(self, name):
+		try:
+			droplets = get_droplet_id(name)
+			request = requests.delete(url+'/{id}'.format(id=droplets['name']),headers=super.headers)
+			response = requests.json()
+			if request.status_code == 204:
+				print('Machine {machine} deleted'.format())
+				sys.exit()
+			else:
+				print('Deletion not completed...')
+				print('Dumping response code...')
+				print('Response code: {code}'.format(code=requests.status_code))
+				sys.exit()
+		except KeyError:
+			print('No machines with that name')
+			sys.exit()
+
+	#returns dict of droplets with name:id pairs
 	def get_droplet_id(self, name):
-		request = requests.get(url, headers=super.headers)
-		response = request.json()
+		droplets = {}
+		response = get_droplets()
+		for droplet in response['droplets']:
+			droplets[droplet['name']] = droplet['id']
+		return droplets
 		
-		
+	def get_droplets(self):
+		try:
+			request = requests.get(url, headers=super.headers)
+			response = request.json()
+			return response['droplets']
+		except KeyError:
+			print('Unexpected response... Dumping response')
+			print(request.text)
+			sys.exit()	
