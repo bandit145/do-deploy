@@ -35,7 +35,7 @@ def main():
 			print('Tags formatted incorrectly, must use "tag,tag"' )
 			sys.exit()
 
-	if args.vars:
+	if args.vars and args.cloud_config:
 		if ',' in args.vars:
 			try: 
 				args.vars = args.vars.split(',')
@@ -47,7 +47,7 @@ def main():
 			cloud_var = split_args('single')
 
 		user_data = cloud_config(cloud_var=cloud_var)
-	else:
+	elif args.cloud_config:
 		user_data = cloud_config()	
 
 
@@ -90,8 +90,14 @@ def cloud_config(**kwargs):
 			source = env.loader.get_source(env, args.cloud_config+'.yml')[0]
 			parsed = env.parse(source)
 			for var in meta.find_undeclared_variables(parsed):
-				if len(args.vars) > 1:
-					data[var] = kwargs['cloud_var'][var]
+				if args.vars:
+					try:
+						data[var] = kwargs['cloud_var'][var]
+					except KeyError:
+						print('All args not entered...')
+						print('Variables in file:')
+						print(meta.find_undeclared_variables(parsed))
+						sys.exit()
 				else:
 					data[var] = input('Enter data for {var}: '.format(var=var))
 			user_data = env.get_template(args.cloud_config+'.yml')
@@ -99,8 +105,7 @@ def cloud_config(**kwargs):
 			print(user_data)
 			return user_data
 
-	except IOError as e:
-		#print(e)
+	except IOError:
 		print('Could not open cloud config file')
 		sys.exit()
 

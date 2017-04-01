@@ -1,0 +1,218 @@
+#cloud-config
+packages:
+  - ufw
+  - fail2ban
+  - apache2
+  - python-letsencrypt-apache 
+  - certbot
+users:
+  - name: server
+    ssh-authorized-keys:
+      #mine
+    passwd: ooIMYxbxCFOko
+    groups: sudo
+    shell: /bin/bash
+
+write_files:
+  - path: /etc/ssh/sshd_config
+    content: |
+      # Package generated configuration file
+      # See the sshd_config(5) manpage for details
+      # What ports, IPs and protocols we listen for
+      Port 4000
+      # Use these options to restrict which interfaces/protocols sshd will bind to
+      #ListenAddress ::
+      #ListenAddress 0.0.0.0
+      Protocol 2
+      # HostKeys for protocol version 2
+      HostKey /etc/ssh/ssh_host_rsa_key
+      HostKey /etc/ssh/ssh_host_dsa_key
+      HostKey /etc/ssh/ssh_host_ecdsa_key
+      HostKey /etc/ssh/ssh_host_ed25519_key
+      #Privilege Separation is turned on for security
+      UsePrivilegeSeparation yes
+
+      # Lifetime and size of ephemeral version 1 server key
+      KeyRegenerationInterval 3600
+      ServerKeyBits 1024
+
+      # Logging
+      SyslogFacility AUTH
+      LogLevel INFO
+
+      # Authentication:
+
+      LoginGraceTime 120
+      PermitRootLogin no
+      StrictModes yes
+
+      RSAAuthentication yes
+      PubkeyAuthentication yes
+      AuthorizedKeysFile      %h/.ssh/authorized_keys
+      AuthorizedKeysCommand /usr/bin/sss_ssh_authorizedkeys
+      AuthorizedKeysCommandUser nobody
+
+      # Don't read the user's ~/.rhosts and ~/.shosts files
+      IgnoreRhosts yes
+      # For this to work you will also need host keys in /etc/ssh_known_hosts
+      RhostsRSAAuthentication no
+      # similar for protocol version 2
+      HostbasedAuthentication no
+      # Uncomment if you don't trust ~/.ssh/known_hosts for RhostsRSAAuthentication
+      #IgnoreUserKnownHosts yes
+
+      # To enable empty passwords, change to yes (NOT RECOMMENDED)
+      PermitEmptyPasswords no
+
+      # Change to yes to enable challenge-response passwords (beware issues with
+      # some PAM modules and threads)
+      ChallengeResponseAuthentication no
+
+      # Change to no to disable tunnelled clear text passwords
+      PasswordAuthentication no
+
+      # Kerberos options
+      #KerberosAuthentication yes
+      #KerberosGetAFSToken no
+      #KerberosOrLocalPasswd yes
+      #KerberosTicketCleanup yes
+
+      # GSSAPI options
+      #GSSAPIAuthentication yes
+      #GSSAPICleanupCredentials yes
+
+      X11Forwarding yes
+      X11DisplayOffset 10
+      PrintMotd no
+      PrintLastLog yes
+      TCPKeepAlive yes
+      #UseLogin no
+
+      #MaxStartups 10:30:60
+      #Banner /etc/issue.net
+
+      # Allow client to pass locale environment variables
+      AcceptEnv LANG LC_*
+
+      Subsystem sftp /usr/lib/openssh/sftp-server
+
+      # Set this to 'yes' to enable PAM authentication, account processing,
+      # and session processing. If this is enabled, PAM authentication will
+      # be allowed through the ChallengeResponseAuthentication and
+      # PasswordAuthentication.  Depending on your PAM configuration,
+      # PAM authentication via ChallengeResponseAuthentication may bypass
+      # the setting of "PermitRootLogin without-password".
+      # If you just want the PAM account and session checks to run without
+      # PAM authentication, then enable this but set PasswordAuthentication
+      # and ChallengeResponseAuthentication to 'no'.
+      UsePAM yes
+    #auth.log etc
+  - path: /etc/logrotate.d/rsyslog
+    content: |
+      /var/log/syslog
+      {
+        daily
+        missingok
+        notifempty
+        postrotate
+          invoke-rc.d rsyslog rotate > /dev/null
+        endscript
+      }
+
+      /var/log/mail.info
+      /var/log/mail.warn
+      /var/log/mail.err
+      /var/log/mail.log
+      /var/log/daemon.log
+      /var/log/kern.log
+      /var/log/auth.log
+      /var/log/user.log
+      /var/log/lpr.log
+      /var/log/cron.log
+      /var/log/debug
+      /var/log/messages
+      {
+        weekly
+        missingok
+        notifempty
+        sharedscripts
+        postrotate
+          invoke-rc.d rsyslog rotate > /dev/null
+        endscript
+      }
+    #apache logs
+  - path: /etc/logrotate.d/apache2
+    content: |
+      /var/log/apache2/*.log {
+      daily
+      missingok
+      rotate 14
+      notifempty
+      create 640 root adm
+      sharedscripts
+      postrotate
+                    if /etc/init.d/apache2 status > /dev/null ; then \
+                        /etc/init.d/apache2 reload > /dev/null; \
+                    fi;
+      endscript
+      prerotate
+        if [ -d /etc/logrotate.d/httpd-prerotate ]; then \
+          run-parts /etc/logrotate.d/httpd-prerotate; \
+        fi; \
+      endscript
+    #certbot autorenew cert (attempts daily)
+  - path: /etc/cron.d/certrenw
+    content: |
+      MAILTO="pbove@cloudi.tech"
+
+      @daily letsencrypt --apache
+  - path: /etc/apache2/sites-enable/000-default.conf
+    content : |
+      <VirtualHost 0.0.0.0:80>
+        ServerName {{domain}}
+
+        Redirect permanent https://{{domain}}
+        ServerAdmin pbove@cloudi.tech
+
+
+        ErrorLog ${APACHE_LOG_DIR}/error.log
+        CustomLog ${APACHE_LOG_DIR}/access.log combined
+
+      </VirtualHost>
+
+      <VirtualHost 0.0.0.0:443>
+
+          DocumentRoot /var/www/html/
+          SSLEngine on
+          SSLCertificateFile      /path/to/signed_certificate_followed_by_intermediate_certs
+          SSLCertificateKeyFile   /path/to/private/key
+
+          # Uncomment the following directive when using client certificate authentication
+          #SSLCACertificateFile    /path/to/ca_certs_for_client_authentication
+
+
+      </VirtualHost>
+
+      # modern configuration, tweak to your needs
+      SSLProtocol             all -SSLv3 -TLSv1 -TLSv1.1
+      SSLCipherSuite          ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-SHA384:ECDHE-RSA-AES256-SHA384:ECDHE-ECDSA-AES128-SHA256:ECDHE-RSA-AES128-SHA256
+      SSLHonorCipherOrder     on
+      SSLCompression          off
+      SSLSessionTickets       off
+
+      # OCSP Stapling, only in httpd 2.3.3 and later
+      SSLUseStapling          on
+      SSLStaplingResponderTimeout 5
+      SSLStaplingReturnResponderErrors off
+      SSLStaplingCache        shmcb:/var/run/ocsp(128000)
+
+
+runcmd:
+  - [service, sshd, restart]
+  - [certbot,--quiet,--apache]
+  - [ufw, enable]
+  - [ufw, allow, in, http ]
+  - [ufw, allow, in, https ]
+  - [ufw, allow, in, ssh ]
+
+
