@@ -3,9 +3,23 @@ from DigitalOcean.data import Data
 import sys
 class CloudConfig(Data):
 
-	def __init__(self,filename):
-		self.filename = filename
+	def __init__(self,filename, variables):
 		super().__init__()
+		self.filename = filename
+		self.variables = variables
+		self.cloud_var = ""
+	#split variables
+
+	def set_variables(self, varis):
+		cloud_var = {}
+		if ',' in varis:
+			for var in varis:
+				pair = var.split('=')
+				cloud_var[pair[0]] = pair[1]
+		else:
+			pair = varis.split('=')
+			cloud_var[pair[0]] = pair[1]	
+		self.cloud_var = cloud_var
 
 	def get_cloud_config(self):
 		try:
@@ -14,13 +28,14 @@ class CloudConfig(Data):
 			source = env.loader.get_source(env, self.filename)[0]
 			parsed = env.parse(source)
 			for var in meta.find_undeclared_variables(parsed):
-				if args.vars:
+				if self.variables:
 					try:
-						data[var] = kwargs['cloud_var'][var]
+						data[var] = self.cloud_var[var]
 					except KeyError:
 						print('All vars for template not entered...')
 						print('Printing required variables...')
 						print(meta.find_undeclared_variables(parsed))
+						sys.exit()
 				else:
 					data[var] = input('Enter data for {var}: '.format(var=var))
 			user_data = env.get_template(args.cloud_config+'.yml')

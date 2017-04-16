@@ -61,10 +61,20 @@ class Image(Data):
 				print('No image by that name exists')
 				sys.exit()
 
-	def remove_image_by_id(self, id):
-		response = super.request_data('{url}/{suburl}'.format(url=Image.url,suburl=id),'delete')
+	def remove_image_by_id(self, iden):
+		response = super.request_data('{url}/{suburl}'.format(url=Image.url,suburl=iden),'delete')
 		if response == 204:
-			print('Image {id} deleted successfully'.format(id=id))
+			print('Image {id} deleted successfully'.format(id=iden))
 		else:
 			print('Error deleting image')
 			sys.exit()
+
+	def remove_image_by_name(self,name):
+		iden = get_image_by_name(name)
+		iden = iden['image']['id']
+		response = super.request_data('{url}/{suburl}'.format(url=Image.url,suburl=iden),'delete')
+		if response == 204:
+			print('Image {id} deleted successfully'.format(id=iden))
+		else:
+			print('Error deleting image')
+			sys.exit()		

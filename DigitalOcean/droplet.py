@@ -74,10 +74,10 @@ class Droplet(Data):
 			sys.exit()
 
 
-	def remove_droplet(self, name):
+	def remove_droplet_by_name(self, name):
 		try:
-			droplets = get_droplet_id(name)
-			response = super.request_data(Droplet.url+'/{id}'.format(id=droplets['name']),'delete')
+			droplet_id = get_droplet_id(name)
+			response = super.request_data(Droplet.url+'/{id}'.format(id=droplet_id),'delete')
 			response = requests.json()
 			if response == 204:
 				print('Machine {machine} deleted'.format())
@@ -91,13 +91,26 @@ class Droplet(Data):
 			print('No machines with that name')
 			sys.exit()
 
+	def remove_droplet(self,id)
+		response = super.request_data(Droplet.url+'/{id}'.format(id=id),'delete')
+		response = requests.json()
+		if response == 204:
+			print('Machine {machine} deleted'.format())
+			sys.exit()
+		else:
+			print('Deletion not completed...')
+			print('Dumping response code...')
+			print('Response code: {code}'.format(code=response))
+			sys.exit()
+
 	#returns dict of droplets with name:id pairs
 	def get_droplet_id(self, name):
 		droplets = {}
 		response = get_droplets()
 		for droplet in response['droplets']:
 			droplets[droplet['name']] = droplet['id']
-		return droplets
+		droplet_id = droplets[name]
+		return droplet_id
 		
 	def get_droplets(self):
 		try:
