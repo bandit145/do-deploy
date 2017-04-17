@@ -2,6 +2,7 @@ from DigitalOcean.data import Data
 import DigitalOcean.cloud_config
 import requests
 import json
+import sys
 
 class Droplet(Data):
 	url = 'https://api.digitalocean.com/v2/droplets'
@@ -10,11 +11,14 @@ class Droplet(Data):
 		self.name = name
 		self.data = {'name':name}
 	#interfaces for adding things for creating droplets
+	def set_region(self,region):
+		self.data['region'] = region
+
 	def set_size(self, slug):
 		self.data['size'] = slug
 
 	def set_image(self, image):
-		data['image'] = image
+		self.data['image'] = image
 
 	def set_private_networking(self):
 		self.data['private_networking'] = True
@@ -40,33 +44,42 @@ class Droplet(Data):
 
 	#tags array
 	def set_tags(self, tags):
-		self.data['tags'] = tags
+		if type(tags) != list:
+			tag = []
+			tag.append(tags)
+			self.data['tags'] = tag
+		else:
+			self.data['tags'] = tags
 
 	def create_droplet(self):
-		response = super.request_data(Droplet.url,'post',self.data)
+		response = super().request_data(Droplet.url,'post',data=self.data)
 		try:
 			if type(response['droplet']['id']) == int:
-				print('Server deployed')
+				print('Droplet deployed')
 				#print(kwargs['user_data'])
-				print(response['droplet']['name'] +' '+str(response['droplet']['id']))
+				print('name: '+response['droplet']['name'])
+				print('id: '+str(response['droplet']['id']))
 				sys.exit()
 			else:
 				print('Server not deployed successfully... Dumping response')
-				print(request.text)
+				print(response)
 				sys.exit()
 		except KeyError:
 			print('Unexpected response... Dumping response')
-			print(request.text)
+			print(response)
 			sys.exit()
 
 	def remove_droplet_by_tag(self, tag):
-		droplets = get_droplets()
-		response = super.request_data(Droplet.url+'?tag_name={tag}'.format(tag=tag),'delete')
+		droplets = self.get_droplets()
+		response = super().request_data(Droplet.url+'?tag_name={tag}'.format(tag=tag),'delete')
 		if response == 204:
 			print('Droplets of tag: {tag} '.format(tag=tag))
 			print('Droplets deleted:')
 			for droplet in droplets:
-				print('Name: '+droplet['name']+' ID: '+ droplet['id'])
+				if tag in droplet['tags']:
+					print('name: '+droplet['name'])
+					print('id: '+ str(droplet['id']))
+					print('----------------')
 		else:
 			print('Deletion not completed...')
 			print('Dumping response code...')
@@ -76,23 +89,23 @@ class Droplet(Data):
 
 	def remove_droplet_by_name(self, name):
 		try:
-			droplet_id = get_droplet_id(name)
-			response = super.request_data(Droplet.url+'/{id}'.format(id=droplet_id),'delete')
-			response = requests.json()
+			droplet_id = self.get_droplet_id(name)
+			response = super().request_data(Droplet.url+'/{id}'.format(id=droplet_id),'delete')
+			#print(str(response))
 			if response == 204:
-				print('Machine {machine} deleted'.format())
+				print('Machine {machine} deleted'.format(machine=name))
 				sys.exit()
 			else:
 				print('Deletion not completed...')
 				print('Dumping response code...')
-				print('Response code: {code}'.format(code=response))
+				print('Response code: {code}'.format(code=str(response)))
 				sys.exit()
 		except KeyError:
 			print('No machines with that name')
 			sys.exit()
 
-	def remove_droplet(self,id)
-		response = super.request_data(Droplet.url+'/{id}'.format(id=id),'delete')
+	def remove_droplet(self,id):
+		response = super().request_data(Droplet.url+'/{id}'.format(id=id),'delete')
 		response = requests.json()
 		if response == 204:
 			print('Machine {machine} deleted'.format())
@@ -106,8 +119,9 @@ class Droplet(Data):
 	#returns dict of droplets with name:id pairs
 	def get_droplet_id(self, name):
 		droplets = {}
-		response = get_droplets()
-		for droplet in response['droplets']:
+		response = self.get_droplets()
+		#print(response)
+		for droplet in response:
 			droplets[droplet['name']] = droplet['id']
 		droplet_id = droplets[name]
 		return droplet_id

@@ -19,16 +19,16 @@ class Data:
 	def request_data(self, url, requesttype,**kwargs):
 		try:
 			if requesttype == 'get':
-				request = requests.get(url=url, headers=self.headers)
-				return request.json()
+				response = requests.get(url=url, headers=self.headers)
+				return response.json()
 
 			elif requesttype == 'post':
-				request = requests.post(url=url, headers=self.headers, data=json.dumps(kwargs['data']))
-				return request.json()
+				response = requests.post(url=url, headers=self.headers, data=json.dumps(kwargs['data']))
+				return response.json()
 
-			elif request == 'delete':
-				request = requests.delete(url=url, headers=self.headers)
-				return request.response_code
+			elif requesttype == 'delete':
+				response = requests.delete(url=url, headers=self.headers)
+				return response.status_code
 			
 			else:
 				return "Error"

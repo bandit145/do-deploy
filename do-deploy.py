@@ -51,47 +51,52 @@ parser_image_delete.add_argument('-n','--name',help='delete by name',type=str)
 args = parser.parse_args()
 
 def main():
-	#check for droplet args
-	#droplet-create
-	if args.cmd == 'droplet-create' :
-		create_droplet()
-		
-	elif args.cmd == 'droplet-delete':
-		delete_droplet()
+	#try:
+		#check for droplet args
+		#droplet-create
+		if args.cmd == 'droplet-create' :
+			create_droplet()
+			
+		elif args.cmd == 'droplet-delete':
+			delete_droplet()
 
-	elif args.cmd == 'droplet-list':
-		list_droplet()
-	elif args.cmd == 'image-list':
-		list_image()
+		elif args.cmd == 'droplet-list':
+			list_droplet()
+		elif args.cmd == 'image-list':
+			list_image()
 
-	elif args.cmd == 'image-delete':
-		delete_image()
+		elif args.cmd == 'image-delete':
+			delete_image()
+	#except AttributeError:
+	#	print(parser.print_usage())
 
 def create_droplet():
-	if ',' in args.tags:
+	if ',' in str(args.tags):
 		tags = slug.tags.split(',')
-	droplet = Droplet(args.name)
+	droplet = DigitalOcean.Droplet(args.name)
 	droplet.set_size(args.slug)
 	droplet.set_image(args.operating_system)
 	droplet.set_region(args.region)
 	if args.private_networking:
 		droplet.private_networking()
 	if args.tags:
-		droplet.set_tags(tags)
+		droplet.set_tags(args.tags)
 	if args.cloud_config and args.vars:
-		cloud_config = CloudConfig(args.cloud_config,True)
+		cloud_config = DigitalOcean.CloudConfig(args.cloud_config,True)
 		cloud_config.set_variables(args.vars)
 		cloud_data = cloud_config.get_cloud_config()
 		droplet.set_cloud_config(cloud_data)
-	else:
-		cloud_config = CloudConfig(args.cloud_config,True)
+	elif args.cloud_config:
+		cloud_config = DigitalOcean.CloudConfig(args.cloud_config,True)
 		cloud_data = cloud_config.get_cloud_config()
 		droplet.set_cloud_config(cloud_data)
 	if args.monitoring:
 		droplet.set_monitoring()
 
+	droplet.create_droplet()
+
 def delete_droplet():
-	droplet = Droplet(args.name)
+	droplet = DigitalOcean.Droplet(args.name)
 	if args.name:
 		#delete by name
 		droplet.remove_droplet_by_name(args.name)
@@ -101,6 +106,8 @@ def delete_droplet():
 		droplet.remove_droplet_by_tag(args.tag)
 
 def list_droplet():
+	droplet = DigitalOcean.Droplet('nothing')
+	#print('test')
 	droplets = droplet.get_droplets()
 	for droplet in droplets:
 		print('name: '+droplet['name'])
@@ -112,21 +119,25 @@ def list_droplet():
 
 #terrible way to do this
 def print_images(images):
+	#print(images['distrubution'])
+	#print(images.keys())
 	if 'images' in  images.keys():
-		for image in images:
-			print('name: '+image['distribution']+''+image['name'])
-			print('slug:'+image['slug'])
-			print('id: '+image['id'])
+		for image in images['images']:
+			#print(image)
+			print('name: '+image['distribution']+' '+image['name'])
+			print('slug: '+str(image['slug']))
+			print('id: '+str(image['id']))
 			print('----------------')
 	else:
 		image = images
-		print('name: '+image['distribution']+''+image['name'])
-		print('slug:'+image['slug'])
-		print('id: '+image['id'])
+		print('name: '+image['distribution']+' '+image['name'])
+		print('slug: '+image['slug'])
+		print('id: '+str(image['id']))
 		print('----------------')
 
 def list_image():
-	image = Image()
+	image = DigitalOcean.Image()
+	#print('test2')
 	if args.all:
 		print_images(image.get_all_images())
 	elif args.app:
