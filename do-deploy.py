@@ -108,13 +108,12 @@ def delete_droplet():
 def list_droplet():
 	droplet = DigitalOcean.Droplet('nothing')
 	#print('test')
-	droplets = droplet.get_droplets()
-	for droplet in droplets:
-		print('name: '+droplet['name'])
-		print('id: '+droplet['id'])
-		print('os: '+droplet['image']['distribution']+''+droplet['image']['name'])
-		print('ip: '+droplet['networks']['ip_address'])
-		print('region: '+droplet['region']['name'])
+	for drop in droplet.get_droplets():
+		print('name: '+drop['name'])
+		print('id: '+drop['id'])
+		print('os: '+drop['image']['distribution']+''+drop['image']['name'])
+		print('ip: '+drop['networks']['ip_address'])
+		print('region: '+drop['region']['name'])
 		print('----------------')
 
 #terrible way to do this
@@ -129,10 +128,10 @@ def print_images(images):
 			print('id: '+str(image['id']))
 			print('----------------')
 	else:
-		image = images
-		print('name: '+image['distribution']+' '+image['name'])
-		print('slug: '+image['slug'])
-		print('id: '+str(image['id']))
+		images
+		print('name: '+images['distribution']+' '+images['name'])
+		print('slug: '+images['slug'])
+		print('id: '+str(images['id']))
 		print('----------------')
 
 def list_image():

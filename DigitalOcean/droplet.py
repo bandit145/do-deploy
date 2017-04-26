@@ -128,10 +128,21 @@ class Droplet(Data):
 		
 	def get_droplets(self):
 		try:
-			response = self.request_data(Droplet.url, 'get')
+			response = super().request_data(Droplet.url, 'get')
 			#print(self.headers)
 			return response['droplets']
 		except KeyError:
 			print('Unexpected response... Dumping response')
 			print(request.text)
 			sys.exit()	
+
+	def get_droplet_by_id(self, iden):
+		try:
+			response = super().request_data(Droplet.url+''iden,'get')
+			if str(response['droplet']['id']) == int:
+				return response['droplet']
+			else:
+				super().error_handle(response)
+				
+		except KeyError:
+			super().error_handle(response)

@@ -34,3 +34,9 @@ class Data:
 				return "Error"
 		except KeyError:
 			return "No Data for post"	
+
+	def error_handle(self, response):
+		print('Unexected response....')
+		print('Dumping response....')
+		print(response)
+		sys.exit()
