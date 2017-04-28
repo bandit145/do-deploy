@@ -12,7 +12,7 @@ class BlockStorage(Data):
 		self.data['name'] = name
 
 	def set_size(self, size):
-		self.data['size'] = size
+		self.data['size_gigabytes'] = size
 
 	def set_region(self, region):
 		self.data['region'] = region
@@ -20,13 +20,14 @@ class BlockStorage(Data):
 	def set_description(self, description):
 		self.data['description'] = description
 
-	def set_attach(self, droplet_id):
-		self.data['type'] = 'attach'
-		self.data['droplet_id'] = droplet_id
-
-	def set_detach(self, droplet_id):
-		self.data['type'] = 'detach'
-		self.data['droplet_id'] = droplet_id
+	def set_action(self, action, **kwargs):
+		self.data['type'] = action
+		if 'action' in action or 'detach':
+			self.set_name(kwargs['name'])
+			self.data['droplet_id'] = kwargs['droplet_id']
+		elif 'resize':
+			self.set_size(kwargs['size'])
+			self.set_region(kwargs['region'])
 
 	def get_volumes(self):
 		try:
@@ -138,6 +139,7 @@ class BlockStorage(Data):
 		except KeyError:
 			super().error_handle(response)
 
+	#Should this take all args from self? or from the method sig?
 	def remove_volume(self, volume_name):
 		try:
 			droplet = Droplet('none')
@@ -155,3 +157,8 @@ class BlockStorage(Data):
 				super().error_handle(response)
 		except KeyError:
 			super().error_handle(response)
+
+	def resize_volume_by_id(self, iden):
+		try:
+			response = super().request_data(BlockStorage.url+'/{id}/actions'.format(id=iden),'post',data=self.data)
+			
